@@ -1,7 +1,10 @@
 import streamlit as st
 import requests
-from gtts import gTTS
+import random
+import asyncio
+import edge_tts
 import base64
+import os
 
 # =====================================================
 # PAGE CONFIG
@@ -10,385 +13,757 @@ import base64
 st.set_page_config(
     page_title="HeatSafe AI",
     page_icon="🌡️",
-    layout="centered"
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
+# =====================================================
+# API KEYS
+# =====================================================
+
+OPENWEATHER_API_KEY = "7085b855fd6998722a4d9afbe03f80b5"
+UNSPLASH_ACCESS_KEY = "bKBWtAow9gfnYe5Ugt3NdcqgR_ui1OUFQod2VSabrnQ"
+
+# =====================================================
+# CUSTOM CSS
+# =====================================================
+
+st.markdown("""
+<style>
+
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
+html, body, [class*="css"] {
+    font-family: 'Poppins', sans-serif;
+}
+
+/* BACKGROUND */
+
+.stApp {
+
+    background:
+    linear-gradient(
+        135deg,
+        #020617 0%,
+        #0f172a 45%,
+        #111827 100%
+    );
+
+    color: white;
+}
+
+/* HIDE STREAMLIT */
+
+#MainMenu {
+    visibility: hidden;
+}
+
+footer {
+    visibility: hidden;
+}
+
+header {
+    visibility: hidden;
+}
+
+/* TITLE */
+
+.main-title {
+
+    font-size: 72px;
+    font-weight: 800;
+    text-align: center;
+    color: white;
+    margin-top: -20px;
+
+    text-shadow:
+        0 0 10px rgba(56,189,248,0.6),
+        0 0 25px rgba(56,189,248,0.4),
+        0 0 50px rgba(56,189,248,0.2);
+}
+
+/* SUBTITLE */
+
+.sub-title {
+
+    text-align: center;
+    font-size: 24px;
+    color: #cbd5e1;
+    margin-bottom: 35px;
+}
+
+/* INPUT */
+
+.stTextInput input {
+
+    background: rgba(15,23,42,0.95) !important;
+    color: white !important;
+    border-radius: 20px !important;
+    border: 2px solid #38bdf8 !important;
+    padding: 18px !important;
+    font-size: 18px !important;
+
+    box-shadow:
+        0 0 20px rgba(56,189,248,0.15);
+}
+
+/* BUTTON */
+
+.stButton button {
+
+    width: 100%;
+
+    background:
+    linear-gradient(
+        90deg,
+        #06b6d4,
+        #2563eb
+    );
+
+    color: white;
+    border: none;
+    border-radius: 18px;
+    padding: 16px;
+    font-size: 18px;
+    font-weight: bold;
+
+    transition: 0.3s;
+}
+
+.stButton button:hover {
+
+    transform: scale(1.02);
+
+    box-shadow:
+        0 0 20px rgba(56,189,248,0.35);
+}
+
+/* METRICS */
+
+[data-testid="metric-container"] {
+
+    background: #1e293b;
+    border-radius: 20px;
+    padding: 20px;
+
+    border:
+    1px solid rgba(255,255,255,0.08);
+
+    box-shadow:
+        0 0 14px rgba(0,0,0,0.25);
+}
+
+[data-testid="metric-container"] * {
+
+    color: white !important;
+}
+
+/* CHAT BOX */
+
+.chat-box {
+
+    background:
+    linear-gradient(
+        135deg,
+        rgba(56,189,248,0.15),
+        rgba(37,99,235,0.12)
+    );
+
+    border-left: 5px solid #67e8f9;
+
+    border-radius: 20px;
+
+    padding: 25px;
+
+    margin-top: 20px;
+
+    color: white;
+
+    font-size: 18px;
+
+    line-height: 1.9;
+}
+
+/* RISK CARD */
+
+.risk-card {
+
+    padding: 25px;
+
+    border-radius: 22px;
+
+    text-align: center;
+
+    color: white;
+
+    font-size: 32px;
+
+    font-weight: bold;
+
+    margin-top: 20px;
+
+    margin-bottom: 20px;
+}
+
+/* SIDEBAR */
+
+section[data-testid="stSidebar"] {
+
+    background: #111827;
+}
+
+section[data-testid="stSidebar"] * {
+
+    color: white !important;
+}
+
+/* SUN EFFECT */
+
+.sun-glow {
+
+    position: fixed;
+
+    top: -180px;
+
+    right: -180px;
+
+    width: 620px;
+
+    height: 620px;
+
+    border-radius: 50%;
+
+    background:
+    radial-gradient(
+        circle,
+        rgba(255,220,0,1) 0%,
+        rgba(255,140,0,0.55) 30%,
+        rgba(255,140,0,0) 72%
+    );
+
+    z-index: -1;
+
+    filter: blur(14px);
+
+    animation: sunPulse 4s infinite alternate;
+}
+
+@keyframes sunPulse {
+
+    from {
+
+        transform: scale(1);
+        opacity: 0.8;
+    }
+
+    to {
+
+        transform: scale(1.15);
+        opacity: 1;
+    }
+}
+
+</style>
+""", unsafe_allow_html=True)
+
+# =====================================================
+# SUN EFFECT
+# =====================================================
+
+st.markdown(
+    '<div class="sun-glow"></div>',
+    unsafe_allow_html=True
 )
 
 # =====================================================
 # TITLE
 # =====================================================
 
-st.title("🌡️ HeatSafe AI")
-st.subheader("🩺 हिंदी AI क्लाइमेट हेल्थ असिस्टेंट")
+st.markdown("""
+
+<h1 class='main-title'>
+🌡️ HeatSafe AI
+</h1>
+
+<p class='sub-title'>
+AI Powered Climate Health Assistant
+</p>
+
+""", unsafe_allow_html=True)
 
 # =====================================================
-# API KEY
+# SIDEBAR
 # =====================================================
 
-API_KEY = "7085b855fd6998722a4d9afbe03f80b5"
+with st.sidebar:
+
+    st.title("🤖 HeatSafe AI")
+
+    st.markdown("---")
+
+    st.info("""
+
+🌡️ Live Weather
+
+🌧️ Rain Prediction
+
+🩺 Health Risk Analysis
+
+🔊 AI Voice Assistant
+
+☀️ Heat Alerts
+
+🌆 Dynamic City Visuals
+
+""")
 
 # =====================================================
-# USER INPUT
+# TEXT TO SPEECH
 # =====================================================
 
-city = st.text_input("📍 शहर का नाम लिखें")
+async def text_to_speech(text):
+
+    if os.path.exists("voice.mp3"):
+
+        try:
+            os.remove("voice.mp3")
+        except:
+            pass
+
+    communicate = edge_tts.Communicate(
+        text,
+        voice="hi-IN-SwaraNeural"
+    )
+
+    await communicate.save("voice.mp3")
 
 # =====================================================
-# BUTTON
+# CITY INPUT
 # =====================================================
 
-if st.button("🔍 मौसम और हीट रिस्क जांचें"):
+city = st.text_input(
+    "📍 Enter City Name"
+)
+
+# =====================================================
+# MAIN BUTTON
+# =====================================================
+
+if st.button("🔍 Analyze Weather"):
 
     if city == "":
 
-        st.error("❌ कृपया शहर का नाम लिखें")
+        st.error("Please enter city name")
 
     else:
 
         try:
 
-            # =====================================================
-            # GET LATITUDE & LONGITUDE
-            # =====================================================
-
-            geo_url = f"http://api.openweathermap.org/geo/1.0/direct?q={city}&limit=1&appid={API_KEY}"
-
-            geo_response = requests.get(geo_url)
-
-            geo_data = geo_response.json()
-
-            # =====================================================
-            # CHECK CITY FOUND
-            # =====================================================
-
-            if len(geo_data) == 0:
-
-                st.error("❌ शहर नहीं मिला")
-
-            else:
+            with st.spinner(
+                "🧠 HeatSafe AI analyzing weather..."
+            ):
 
                 # =====================================================
-                # COORDINATES
+                # GEO API
                 # =====================================================
 
-                lat = geo_data[0]["lat"]
-                lon = geo_data[0]["lon"]
+                geo_url = (
+                    f"http://api.openweathermap.org/geo/1.0/direct?"
+                    f"q={city}&limit=1"
+                    f"&appid={OPENWEATHER_API_KEY}"
+                )
 
-                # =====================================================
-                # CURRENT WEATHER
-                # =====================================================
+                geo_data = requests.get(
+                    geo_url
+                ).json()
 
-                weather_url = f"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={API_KEY}&units=metric"
+                if len(geo_data) == 0:
 
-                weather_response = requests.get(weather_url)
-
-                weather_data = weather_response.json()
-
-                # =====================================================
-                # FORECAST WEATHER
-                # =====================================================
-
-                forecast_url = f"https://api.openweathermap.org/data/2.5/forecast?lat={lat}&lon={lon}&appid={API_KEY}&units=metric"
-
-                forecast_response = requests.get(forecast_url)
-
-                forecast_data = forecast_response.json()
-
-                # =====================================================
-                # WEATHER VALUES
-                # =====================================================
-
-                temp = weather_data["main"]["temp"]
-
-                feels_like = weather_data["main"]["feels_like"]
-
-                humidity = weather_data["main"]["humidity"]
-
-                pressure = weather_data["main"]["pressure"]
-
-                weather = weather_data["weather"][0]["description"]
-
-                wind_speed = weather_data["wind"]["speed"]
-
-                tomorrow_temp = forecast_data["list"][8]["main"]["temp"]
-
-                # =====================================================
-                # HEAT ANALYSIS
-                # =====================================================
-
-                risk = ""
-                diseases = ""
-                solutions = ""
-                alert_voice = ""
-                box_color = ""
-
-                # =====================================================
-                # EXTREME HEAT
-                # =====================================================
-
-                if temp >= 45 or feels_like >= 48:
-
-                    risk = "🚨 अत्यधिक गर्मी का खतरा"
-
-                    diseases = """
-🥵 हीट स्ट्रोक  
-💧 डिहाइड्रेशन  
-😵 बेहोशी  
-🤕 चक्कर आना  
-🔥 त्वचा जलना  
-❤️ BP बढ़ना  
-🤒 तेज सिर दर्द
-"""
-
-                    solutions = """
-💧 ORS और पानी पिएं  
-🍋 नींबू पानी लें  
-☀️ धूप से बचें  
-🧢 टोपी पहनें  
-🚿 ठंडे पानी से नहाएं  
-🥒 खीरा और फल खाएं  
-👶 बच्चों और बुजुर्गों का ध्यान रखें
-"""
-
-                    alert_voice = f"""
-चेतावनी।
-
-{city} में अत्यधिक गर्मी है।
-
-वर्तमान तापमान {temp} डिग्री सेल्सियस है।
-महसूस तापमान {feels_like} डिग्री है।
-नमी {humidity} प्रतिशत है।
-
-कल अनुमानित तापमान {tomorrow_temp} डिग्री रह सकता है।
-
-इस मौसम में
-हीट स्ट्रोक,
-डिहाइड्रेशन,
-बेहोशी,
-चक्कर,
-और त्वचा जलने जैसी समस्याएं हो सकती हैं।
-
-कृपया ORS और पानी पिएं।
-धूप में बाहर ना जाएं।
-टोपी पहनें।
-और बच्चों तथा बुजुर्गों का विशेष ध्यान रखें।
-
-सुरक्षित रहें।
-"""
-
-                    box_color = "red"
-
-                # =====================================================
-                # HIGH HEAT
-                # =====================================================
-
-                elif temp >= 38:
-
-                    risk = "⚠️ गर्मी बढ़ रही है"
-
-                    diseases = """
-🤒 सिर दर्द  
-😓 थकान  
-💦 कमजोरी  
-🥵 शरीर गर्म होना  
-😴 आलस  
-💧 पानी की कमी
-"""
-
-                    solutions = """
-💧 ज्यादा पानी पिएं  
-🍉 फल खाएं  
-☀️ दोपहर में बाहर कम जाएं  
-🧃 जूस पिएं  
-😴 आराम करें  
-🧢 सिर ढककर बाहर जाएं
-"""
-
-                    alert_voice = f"""
-सावधान।
-
-{city} में तापमान {temp} डिग्री सेल्सियस है।
-महसूस तापमान {feels_like} डिग्री है।
-नमी {humidity} प्रतिशत है।
-
-कल अनुमानित तापमान {tomorrow_temp} डिग्री रह सकता है।
-
-गर्मी बढ़ रही है।
-
-इस मौसम में
-डिहाइड्रेशन,
-सिर दर्द,
-कमजोरी,
-थकान,
-और शरीर गर्म होने जैसी समस्याएं हो सकती हैं।
-
-कृपया ज्यादा पानी पिएं।
-जूस और फल लें।
-दोपहर में धूप से बचें।
-और सिर ढककर बाहर जाएं।
-
-अपना और अपने परिवार का ध्यान रखें।
-"""
-
-                    box_color = "orange"
-
-                # =====================================================
-                # NORMAL WEATHER
-                # =====================================================
+                    st.error("City not found")
 
                 else:
 
-                    risk = "✅ मौसम सामान्य"
+                    lat = geo_data[0]["lat"]
+                    lon = geo_data[0]["lon"]
 
-                    diseases = """
-😊 कोई बड़ा स्वास्थ्य खतरा नहीं
-"""
+                    # =====================================================
+                    # WEATHER API
+                    # =====================================================
 
-                    solutions = """
-💧 नियमित पानी पिएं  
-🥗 हेल्दी भोजन करें  
-🏃 सामान्य गतिविधियां सुरक्षित हैं
-"""
+                    weather_url = (
+                        f"https://api.openweathermap.org/data/2.5/weather?"
+                        f"lat={lat}&lon={lon}"
+                        f"&appid={OPENWEATHER_API_KEY}"
+                        f"&units=metric"
+                    )
+
+                    weather_data = requests.get(
+                        weather_url
+                    ).json()
+
+                    forecast_url = (
+                        f"https://api.openweathermap.org/data/2.5/forecast?"
+                        f"lat={lat}&lon={lon}"
+                        f"&appid={OPENWEATHER_API_KEY}"
+                        f"&units=metric"
+                    )
+
+                    forecast_data = requests.get(
+                        forecast_url
+                    ).json()
+
+                    # =====================================================
+                    # WEATHER VALUES
+                    # =====================================================
+
+                    temp = weather_data["main"]["temp"]
+
+                    feels_like = (
+                        weather_data["main"]["feels_like"]
+                    )
+
+                    humidity = (
+                        weather_data["main"]["humidity"]
+                    )
+
+                    wind_speed = (
+                        weather_data["wind"]["speed"]
+                    )
+
+                    weather = (
+                        weather_data["weather"][0]["description"]
+                    )
+
+                    tomorrow_temp = (
+                        forecast_data["list"][8]["main"]["temp"]
+                    )
+
+                    # =====================================================
+                    # DYNAMIC CITY IMAGE
+                    # =====================================================
+
+                    unsplash_url = (
+                        f"https://api.unsplash.com/search/photos?"
+                        f"page=1"
+                        f"&query={city}+landmark+cinematic"
+                        f"&client_id={UNSPLASH_ACCESS_KEY}"
+                    )
+
+                    unsplash_data = requests.get(
+                        unsplash_url
+                    ).json()
+
+                    if (
+                        "results" in unsplash_data
+                        and len(
+                            unsplash_data["results"]
+                        ) > 0
+                    ):
+
+                        random_image = random.choice(
+                            unsplash_data["results"]
+                        )
+
+                        city_image = (
+                            random_image["urls"]["regular"]
+                        )
+
+                        st.image(
+                            city_image,
+                            use_container_width=True
+                        )
+
+                    # =====================================================
+                    # WEATHER VISUALS
+                    # =====================================================
+
+                    weather_lower = weather.lower()
+
+                    if temp >= 38:
+
+                        st.markdown("""
+                        <div style="
+                        text-align:center;
+                        font-size:95px;
+                        margin-top:-20px;
+                        animation:sunPulse 3s infinite alternate;
+                        ">
+                        ☀️🔥
+                        </div>
+                        """, unsafe_allow_html=True)
+
+                    elif (
+                        "rain" in weather_lower
+                        or "drizzle" in weather_lower
+                        or humidity >= 85
+                    ):
+
+                        st.markdown("""
+                        <div style="
+                        text-align:center;
+                        font-size:95px;
+                        margin-top:-20px;
+                        ">
+                        🌧️☁️
+                        </div>
+                        """, unsafe_allow_html=True)
+
+                    else:
+
+                        st.markdown("""
+                        <div style="
+                        text-align:center;
+                        font-size:95px;
+                        margin-top:-20px;
+                        ">
+                        ⛅🌤️
+                        </div>
+                        """, unsafe_allow_html=True)
+
+                    # =====================================================
+                    # RISK CARD
+                    # =====================================================
+
+                    if temp >= 45:
+
+                        risk = "🚨 Extreme Heat Risk"
+
+                        gradient = (
+                            "linear-gradient(135deg,#ef4444,#991b1b)"
+                        )
+
+                    elif temp >= 38:
+
+                        risk = "⚠️ Heat Increasing"
+
+                        gradient = (
+                            "linear-gradient(135deg,#f59e0b,#ea580c)"
+                        )
+
+                    else:
+
+                        risk = "✅ Weather Normal"
+
+                        gradient = (
+                            "linear-gradient(135deg,#10b981,#047857)"
+                        )
+
+                    st.markdown(
+                        f"""
+                        <div class="risk-card"
+                        style="background:{gradient};">
+
+                        {risk}
+
+                        </div>
+                        """,
+                        unsafe_allow_html=True
+                    )
+
+                    # =====================================================
+                    # WEATHER CARD
+                    # =====================================================
+
+                    st.markdown(
+                        f"""
+                        <div class="chat-box">
+
+                        <h2>
+                        🤖 HeatSafe AI Assistant
+                        </h2>
+
+                        📍 <b>Location:</b> {city}<br><br>
+
+                        🌡️ <b>Temperature:</b> {temp}°C<br><br>
+
+                        🥵 <b>Feels Like:</b> {feels_like}°C<br><br>
+
+                        💧 <b>Humidity:</b> {humidity}%<br><br>
+
+                        🌬️ <b>Wind Speed:</b> {wind_speed} m/s<br><br>
+
+                        ☁️ <b>Weather:</b> {weather}<br><br>
+
+                        📅 <b>Tomorrow Temperature:</b> {tomorrow_temp}°C
+
+                        </div>
+                        """,
+                        unsafe_allow_html=True
+                    )
+
+                    # =====================================================
+                    # PREMIUM METRICS
+                    # =====================================================
+
+                    st.markdown(
+                        "## 📊 Live Climate Analysis"
+                    )
+
+                    col1, col2 = st.columns(2)
+
+                    with col1:
+
+                        st.metric(
+                            "🌡️ Temperature",
+                            f"{temp} °C",
+                            f"Feels {feels_like} °C"
+                        )
+
+                        st.metric(
+                            "💧 Humidity",
+                            f"{humidity}%",
+                            "Moisture Level"
+                        )
+
+                    with col2:
+
+                        st.metric(
+                            "🌬️ Wind Speed",
+                            f"{wind_speed} m/s",
+                            "Air Flow"
+                        )
+
+                        st.metric(
+                            "📅 Tomorrow Temp",
+                            f"{tomorrow_temp} °C",
+                            "Forecast"
+                        )
+
+                    # =====================================================
+                    # AI VOICE
+                    # =====================================================
 
                     alert_voice = f"""
-अच्छी खबर।
 
-{city} का मौसम सामान्य है।
+Namaste.
 
-वर्तमान तापमान {temp} डिग्री सेल्सियस है।
-महसूस तापमान {feels_like} डिग्री है।
-नमी {humidity} प्रतिशत है।
+Mai HeatSafe AI Assistant bol rahi hu.
 
-कल अनुमानित तापमान {tomorrow_temp} डिग्री रह सकता है।
+Aaj {city} ka live climate analysis ready hai.
 
-फिलहाल कोई बड़ा स्वास्थ्य खतरा नहीं है।
+Current temperature {temp} degree Celsius record kiya gaya hai.
 
-फिर भी नियमित पानी पीते रहें।
-स्वस्थ भोजन करें।
-और अपना ध्यान रखें।
+Feels like temperature {feels_like} degree hai.
+
+Humidity level {humidity} percent hai.
+
+Wind speed {wind_speed} meter per second hai.
+
+Kal ka expected temperature {tomorrow_temp} degree tak pahunch sakta hai.
+
 """
 
-                    box_color = "green"
+                    if temp >= 45:
 
-                # =====================================================
-                # RISK BOX
-                # =====================================================
+                        alert_voice += """
 
-                st.markdown(
-                    f"""
-                    <div style="
-                        background-color:{box_color};
-                        padding:18px;
-                        border-radius:15px;
-                        text-align:center;
-                        color:white;
-                        font-size:28px;
-                        font-weight:bold;
-                    ">
-                    {risk}
-                    </div>
-                    """,
-                    unsafe_allow_html=True
-                )
+Warning.
 
-                st.write("")
+Extreme heat conditions detect hui hain.
 
-                # =====================================================
-                # WEATHER DETAILS
-                # =====================================================
+Heat stroke,
+severe dehydration,
+body weakness,
+dizziness,
+high fatigue,
+aur headache ho sakta hai.
 
-                col1, col2 = st.columns(2)
+Din bhar zyada paani peejiyega.
 
-                with col1:
+ORS,
+coconut water,
+aur fresh fruits beneficial rahenge.
 
-                    st.metric("🌡️ तापमान", f"{temp} °C")
+Direct sunlight avoid kijiye.
 
-                    st.metric("💧 नमी", f"{humidity}%")
+Afternoon me unnecessary travel avoid kijiye.
 
-                    st.metric("📅 कल तापमान", f"{tomorrow_temp} °C")
+Light cotton clothes pehniye.
 
-                with col2:
+Cap aur sunglasses use kijiye.
+"""
 
-                    st.metric("🥵 महसूस तापमान", f"{feels_like} °C")
+                    elif temp >= 38:
 
-                    st.metric("🌬️ हवा की गति", f"{wind_speed} m/s")
+                        alert_voice += """
 
-                    st.metric("📍 Latitude", lat)
+Heat level gradually increase ho raha hai.
 
-                st.info(f"☁️ मौसम: {weather}")
+Body fatigue,
+heating,
+aur dehydration feel ho sakta hai.
 
-                # =====================================================
-                # DISEASES
-                # =====================================================
+Hydrated rahiye.
 
-                st.subheader("🩺 संभावित स्वास्थ्य समस्याएं")
+Juice aur light food lijiye.
 
-                st.warning(diseases)
+Long sunlight exposure avoid kijiye.
+"""
 
-                # =====================================================
-                # SOLUTIONS
-                # =====================================================
+                    else:
 
-                st.subheader("🛡️ बचाव के उपाय")
+                        alert_voice += """
 
-                st.success(solutions)
+Weather currently stable hai.
 
-                # =====================================================
-                # EXTRA AI TIPS
-                # =====================================================
+Phir bhi healthy aur hydrated rahiye.
+"""
 
-                st.subheader("🌿 AI हेल्थ टिप्स")
+                    if (
+                        "rain" in weather_lower
+                        or "drizzle" in weather_lower
+                        or humidity >= 85
+                    ):
 
-                if humidity > 70:
-                    st.info("💦 नमी अधिक है, पसीना जल्दी नहीं सूखेगा")
+                        alert_voice += """
 
-                if temp > 40:
-                    st.error("☀️ दोपहर 12 बजे से 4 बजे तक बाहर ना जाएं")
+Rain possibility bhi detect hui hai.
 
-                if tomorrow_temp > temp:
-                    st.warning("📈 कल तापमान और बढ़ सकता है")
+Umbrella carry kijiye.
 
-                if feels_like > temp:
-                    st.warning("🥵 महसूस तापमान वास्तविक तापमान से अधिक है")
+Wet roads par carefully drive kijiye.
 
-                if wind_speed < 1:
-                    st.warning("🌬️ हवा कम चल रही है, गर्मी ज्यादा महसूस हो सकती है")
+Water logging areas avoid kijiye.
 
-                # =====================================================
-                # AI HINDI FEMALE-LIKE VOICE
-                # =====================================================
+Electronics ko safe rakhiye.
+"""
 
-                tts = gTTS(
-                    text=alert_voice,
-                    lang='hi',
-                    slow=False
-                )
+                    alert_voice += """
 
-                tts.save("alert.mp3")
+Stay safe.
 
-                # =====================================================
-                # AUTOPLAY AUDIO
-                # =====================================================
+Thank you.
+"""
 
-                audio_file = open("alert.mp3", "rb")
+                    # =====================================================
+                    # GENERATE VOICE
+                    # =====================================================
 
-                audio_bytes = audio_file.read()
+                    asyncio.run(
+                        text_to_speech(alert_voice)
+                    )
 
-                b64 = base64.b64encode(audio_bytes).decode()
+                    with open(
+                        "voice.mp3",
+                        "rb"
+                    ) as audio_file:
 
-                audio_html = f"""
-                <audio autoplay>
-                <source src="data:audio/mp3;base64,{b64}" type="audio/mp3">
-                </audio>
-                """
+                        audio_bytes = (
+                            audio_file.read()
+                        )
 
-                st.markdown(audio_html, unsafe_allow_html=True)
+                    # =====================================================
+                    # STREAMLIT AUDIO
+                    # =====================================================
 
-        # =====================================================
-        # ERROR HANDLING
-        # =====================================================
+                    st.audio(
+                        audio_bytes,
+                        format="audio/mp3",
+                        autoplay=True
+                    )
 
         except Exception as e:
 
-            st.error("⚠️ कुछ तकनीकी समस्या हुई")
+            st.error("Technical Error")
 
             st.write(e)
