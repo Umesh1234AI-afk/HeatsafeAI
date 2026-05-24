@@ -1,3 +1,5 @@
+from streamlit_lottie import st_lottie
+
 import streamlit as st
 import requests
 import random
@@ -182,11 +184,27 @@ header {
     font-size: 18px;
 
     line-height: 1.9;
+            
+    backdrop-filter: blur(18px);
+
+background:
+linear-gradient(
+135deg,
+rgba(255,255,255,0.10),
+rgba(255,255,255,0.04)
+);
+
+border:
+1px solid rgba(255,255,255,0.16);
+
+box-shadow:
+0 0 25px rgba(0,0,0,0.30);
 }
 
 /* RISK CARD */
 
 .risk-card {
+
 
     padding: 25px;
 
@@ -203,6 +221,14 @@ header {
     margin-top: 20px;
 
     margin-bottom: 20px;
+            
+    backdrop-filter: blur(16px);
+
+  border:
+  1px solid rgba(255,255,255,0.18);
+
+  box-shadow:
+  0 0 25px rgba(0,0,0,0.35);
 }
 
 /* SIDEBAR */
@@ -218,7 +244,7 @@ section[data-testid="stSidebar"] * {
 }
 
 /* SUN EFFECT */
-
+            
 .sun-glow {
 
     position: fixed;
@@ -227,9 +253,9 @@ section[data-testid="stSidebar"] * {
 
     right: -180px;
 
-    width: 620px;
+    width: 700px;
 
-    height: 620px;
+    height: 700px;
 
     border-radius: 50%;
 
@@ -237,29 +263,34 @@ section[data-testid="stSidebar"] * {
     radial-gradient(
         circle,
         rgba(255,220,0,1) 0%,
-        rgba(255,140,0,0.55) 30%,
+        rgba(255,140,0,0.7) 25%,
+        rgba(255,80,0,0.35) 45%,
         rgba(255,140,0,0) 72%
     );
 
     z-index: -1;
 
-    filter: blur(14px);
+    filter: blur(22px);
 
-    animation: sunPulse 4s infinite alternate;
+    animation:
+    sunPulse 4s infinite alternate,
+    rotateGlow 18s linear infinite;
 }
 
-@keyframes sunPulse {
+@keyframes rotateGlow {
 
     from {
 
-        transform: scale(1);
-        opacity: 0.8;
+        transform:
+        rotate(0deg)
+        scale(1);
     }
 
     to {
 
-        transform: scale(1.15);
-        opacity: 1;
+        transform:
+        rotate(360deg)
+        scale(1.12);
     }
 }
 
@@ -316,7 +347,14 @@ with st.sidebar:
 🌆 Dynamic City Visuals
 
 """)
+def load_lottieurl(url):
 
+    r = requests.get(url)
+
+    if r.status_code != 200:
+        return None
+
+    return r.json()
 # =====================================================
 # TEXT TO SPEECH
 # =====================================================
@@ -348,6 +386,7 @@ city = st.text_input(
 # =====================================================
 # MAIN BUTTON
 # =====================================================
+
 
 if st.button("🔍 Analyze Weather"):
 
@@ -434,6 +473,8 @@ if st.button("🔍 Analyze Weather"):
                         weather_data["weather"][0]["description"]
                     )
 
+                    weather_lower = weather.lower()
+
                     tomorrow_temp = (
                         forecast_data["list"][8]["main"]["temp"]
                     )
@@ -472,13 +513,72 @@ if st.button("🔍 Analyze Weather"):
                             city_image,
                             use_container_width=True
                         )
+                    else:
+
+                        st.warning(
+                            "🌆 City image not available"
+                        )
 
                     # =====================================================
                     # WEATHER VISUALS
                     # =====================================================
+                    # =====================================================
+                    # CINEMATIC WEATHER OVERLAY
+                    # =====================================================
 
-                    weather_lower = weather.lower()
+                    if temp >= 43:
 
+                        st.markdown("""
+
+                        <style>
+
+                    .heat-overlay {
+
+                        position: fixed;
+
+                        top: 0;
+
+                        left: 0;
+
+                        width: 100%;
+
+                        height: 100%;
+
+                        pointer-events: none;
+
+                        background:
+                        radial-gradient(
+                         circle at top right,
+                         rgba(255,140,0,0.22),
+                         transparent 45%
+                        );
+
+                        animation:
+                        heatMove 6s infinite alternate;
+                    }
+
+                    @keyframes heatMove {
+
+                      0% {
+
+                         transform:
+                         translateX(0px)
+                         scale(1);
+                        }
+
+                       100% {
+
+                          transform:
+                          translateX(-40px)
+                          scale(1.08);
+                        }
+                    }
+
+                    </style>
+
+                    <div class="heat-overlay"></div>
+
+                    """, unsafe_allow_html=True)
                     if temp >= 38:
 
                         st.markdown("""
@@ -519,6 +619,120 @@ if st.button("🔍 Analyze Weather"):
                         ⛅🌤️
                         </div>
                         """, unsafe_allow_html=True)
+                    st.markdown("""
+                    <style>
+
+                    .float-bot {
+
+                     animation:
+                    floatBot 4s infinite ease-in-out;
+                    }
+
+                    @keyframes floatBot {
+
+                    0% {
+
+                       transform:
+                       translateY(0px);
+                    }
+
+                    50% {
+
+                         transform:
+                         translateY(-12px);
+                    }
+
+                    100% {
+
+                         transform:
+                         translateY(0px);
+                        }
+
+                    }
+
+                    </style>
+                    """, unsafe_allow_html=True)
+
+                    
+                    # =====================================================
+                    # AI SPEAKING ANIMATION
+                    # =====================================================
+
+                    st.markdown("""
+
+                    <div style="
+                    display:flex;
+                    flex-direction:column;
+                    justify-content:center;
+                    align-items:center;
+                    margin-top:30px;
+                    margin-bottom:20px;
+                    ">
+
+                    <div style="
+                    width:90px;
+                    height:90px;
+                    border-radius:50%;
+                    background:radial-gradient(circle,#67e8f9 0%,#2563eb 45%);
+                    box-shadow:0 0 20px #38bdf8,0 0 50px #2563eb;
+                    animation:pulse 1.5s infinite;
+                    ">
+                    </div>
+
+                    <div style="
+                    display:flex;
+                    gap:6px;
+                    margin-top:20px;
+                    align-items:flex-end;
+                    ">
+
+                    <div class="wave"></div>
+                    <div class="wave"></div>
+                    <div class="wave"></div>
+                    <div class="wave"></div>
+                    <div class="wave"></div>
+
+                    </div>
+
+                    <h3 style="
+                    margin-top:15px;
+                    color:white;
+                    ">
+                    🤖 HeatSafe AI बोल रही है...
+                    </h3>
+
+                    </div>
+
+                    <style>
+
+                    @keyframes pulse {
+                    0% {transform:scale(1);}
+                    50% {transform:scale(1.15);}
+                    100% {transform:scale(1);}
+                    }
+
+                    .wave {
+                    width:8px;
+                    height:35px;
+                    background:#67e8f9;
+                    border-radius:10px;
+                    animation:wave 1s infinite ease-in-out;
+                    }
+
+                    .wave:nth-child(2){animation-delay:0.2s;}
+                    .wave:nth-child(3){animation-delay:0.4s;}
+                    .wave:nth-child(4){animation-delay:0.6s;}
+                    .wave:nth-child(5){animation-delay:0.8s;}
+
+                    @keyframes wave {
+                    0% {height:20px;}
+                    50% {height:60px;}
+                    100% {height:20px;}
+                    }
+
+                    </style>
+
+                    """, unsafe_allow_html=True)
 
                     # =====================================================
                     # RISK CARD
@@ -592,7 +806,7 @@ if st.button("🔍 Analyze Weather"):
                     )
 
                     # =====================================================
-                    # PREMIUM METRICS
+                    # METRICS
                     # =====================================================
 
                     st.markdown(
@@ -635,79 +849,69 @@ if st.button("🔍 Analyze Weather"):
 
                     alert_voice = f"""
 
-Namaste.
+                    Namaste.
 
-Mai HeatSafe AI Assistant bol rahi hu.
+                    Mai HeatSafe AI Assistant bol rahi hu.
 
-Aaj {city} ka live climate analysis ready hai.
+                    Aaj {city} ka live climate analysis ready hai.
 
-Current temperature {temp} degree Celsius record kiya gaya hai.
+                    Current temperature {temp} degree Celsius record kiya gaya hai.
 
-Feels like temperature {feels_like} degree hai.
+                    Feels like temperature {feels_like} degree hai.
 
-Humidity level {humidity} percent hai.
+                    Humidity level {humidity} percent hai.
 
-Wind speed {wind_speed} meter per second hai.
+                    Wind speed {wind_speed} meter per second hai.
 
-Kal ka expected temperature {tomorrow_temp} degree tak pahunch sakta hai.
+                    Kal ka expected temperature {tomorrow_temp} degree tak pahunch sakta hai.
 
-"""
+                    """
 
-                    if temp >= 45:
+                    if temp >= 43:
 
                         alert_voice += """
 
-Warning.
+                        Warning.
 
-Extreme heat conditions detect hui hain.
+                        Extreme heat conditions detect hui hain.
 
-Heat stroke,
-severe dehydration,
-body weakness,
-dizziness,
-high fatigue,
-aur headache ho sakta hai.
+                        Heat stroke,
+                        severe dehydration,
+                        body weakness,
+                        dizziness,
+                        high fatigue,
+                        aur headache ho sakta hai.
 
-Din bhar zyada paani peejiyega.
+                        Din bhar zyada paani peejiyega.
 
-ORS,
-coconut water,
-aur fresh fruits beneficial rahenge.
+                        ORS,
+                        coconut water,
+                        aur fresh fruits beneficial rahenge.
 
-Direct sunlight avoid kijiye.
+                        Direct sunlight avoid kijiye.
 
-Afternoon me unnecessary travel avoid kijiye.
+                        Afternoon me unnecessary travel avoid kijiye.
 
-Light cotton clothes pehniye.
+                        Light cotton clothes pehniye.
 
-Cap aur sunglasses use kijiye.
+                        Cap aur sunglasses use kijiye.
 """
 
                     elif temp >= 38:
 
                         alert_voice += """
 
-Heat level gradually increase ho raha hai.
+                        Heat level gradually increase ho raha hai.
 
-Body fatigue,
-heating,
-aur dehydration feel ho sakta hai.
-
-Hydrated rahiye.
-
-Juice aur light food lijiye.
-
-Long sunlight exposure avoid kijiye.
-"""
+                        Hydrated rahiye.
+                        """
 
                     else:
 
                         alert_voice += """
 
-Weather currently stable hai.
-
-Phir bhi healthy aur hydrated rahiye.
-"""
+                        Weather currently stable hai.
+                        """
 
                     if (
                         "rain" in weather_lower
@@ -717,23 +921,17 @@ Phir bhi healthy aur hydrated rahiye.
 
                         alert_voice += """
 
-Rain possibility bhi detect hui hai.
+                        Rain possibility detect hui hai.
 
-Umbrella carry kijiye.
-
-Wet roads par carefully drive kijiye.
-
-Water logging areas avoid kijiye.
-
-Electronics ko safe rakhiye.
-"""
+                        Umbrella carry kijiye.
+                        """
 
                     alert_voice += """
 
-Stay safe.
+                    Stay safe.
 
-Thank you.
-"""
+                    Thank you.
+                    """
 
                     # =====================================================
                     # GENERATE VOICE
@@ -748,12 +946,10 @@ Thank you.
                         "rb"
                     ) as audio_file:
 
-                        audio_bytes = (
-                            audio_file.read()
-                        )
+                        audio_bytes = audio_file.read()
 
                     # =====================================================
-                    # STREAMLIT AUDIO
+                    # AUDIO
                     # =====================================================
 
                     st.audio(
@@ -767,3 +963,4 @@ Thank you.
             st.error("Technical Error")
 
             st.write(e)
+
