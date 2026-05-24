@@ -2,4 +2,4 @@ streamlit
 requests
 gTTS
 edge-tts
-streamlite-lottie
+
