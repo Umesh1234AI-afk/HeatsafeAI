@@ -1,3 +1,8 @@
+<<<<<<< HEAD
 streamlit
 requests
+=======
+streamlit
+requests
+>>>>>>> cd77aed03516c95c9ff0c0a408d7eb133519fe89
 gtts
