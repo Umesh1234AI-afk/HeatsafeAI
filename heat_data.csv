@@ -1,0 +1,17 @@
+temperature,humidity,risk
+30,20,Low
+31,22,Low
+32,25,Low
+33,28,Low
+34,30,Low
+35,35,Medium
+36,38,Medium
+37,40,Medium
+38,45,Medium
+39,48,Medium
+40,50,High
+41,55,High
+42,60,High
+43,65,High
+44,70,High
+45,75,High
