@@ -6,7 +6,12 @@ HeatSafe AI is an AI-powered climate health application developed using Python a
 
 ---
 
-## 🌐 Live Demo
+
+# 🎥 Demo Video
+
+Watch the complete demo on YouTube:
+
+▶️ https://youtu.be/XXXXXXXXXXX
 
 🔗 https://heatsafeai.streamlit.app/
 
